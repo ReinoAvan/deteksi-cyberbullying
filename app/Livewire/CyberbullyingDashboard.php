@@ -27,5 +27,8 @@ class CyberbullyingDashboard extends Component
                 'tinggi' => 2
             ]
         ]);
+
+        return view('livewire.cyberbullying-dashboard')
+        ->layout('layouts.app');
     }
 }
