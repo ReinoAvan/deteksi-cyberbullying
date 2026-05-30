@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\CyberbullyingDashboard;
+use App\Livewire\BehaviorAnalysis;
 use App\Livewire\LogActivity;
 use App\Livewire\StudentManagement;
 
@@ -13,6 +14,5 @@ Route::get('/manajemen-siswa', StudentManagement::class)
 Route::get('/log-activity', LogActivity::class)
     ->name('log-activity');
 
-Route::get('/analisis-perilaku', function () {
-    return 'Halaman Analisis Perilaku';
-})->name('analisis-perilaku');
+Route::get('/analisis-perilaku', BehaviorAnalysis::class)
+    ->name('analisis-perilaku');

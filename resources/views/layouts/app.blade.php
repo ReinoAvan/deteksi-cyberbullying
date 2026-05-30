@@ -40,7 +40,7 @@
 <div x-data="{ sidebarCollapsed: false }" class="flex min-h-screen flex-col md:flex-row">
 
     <aside
-        class="bg-gradient-to-b from-indigo-700 to-slate-950 p-4 text-white transition-all duration-300 md:min-h-screen"
+        class="sticky top-0 z-30 bg-gradient-to-b from-indigo-700 to-slate-950 p-4 text-white transition-all duration-300 md:h-screen md:self-start"
         x-bind:class="sidebarCollapsed ? 'md:w-20' : 'md:w-64'"
     >
         <div class="mb-4 flex items-center justify-between gap-3">
@@ -80,7 +80,7 @@
         </nav>
     </aside>
 
-    <main class="flex-1 p-4 sm:p-6">
+    <main class="min-w-0 flex-1 p-4 sm:p-6">
         {{ $slot }}
     </main>
 
