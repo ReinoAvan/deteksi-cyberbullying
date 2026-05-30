@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Student extends Model
 {
     protected $fillable = [
+        'profile_photo',
         'name',
         'nis',
         'class',
@@ -15,4 +16,9 @@ class Student extends Model
         'risk_level',
         'risk_score'
     ];
+
+    public function logActivities()
+    {
+        return $this->hasMany(LogActivity::class, 'student_id', 'nis');
+    }
 }
