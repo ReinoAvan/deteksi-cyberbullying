@@ -33,6 +33,7 @@ class BehaviorAnalysis extends Component
 
     public string $student_id = '';
     public string $name = '';
+    public string $studentSearch = '';
     public string $response_time_mean = '';
     public string $empathy_score = '';
     public string $conformity_index = '';
@@ -97,6 +98,7 @@ class BehaviorAnalysis extends Component
         $this->editId = $analysis->id;
         $this->student_id = $analysis->student_id;
         $this->name = $analysis->name;
+        $this->studentSearch = $analysis->student->name ?? $analysis->name;
         $this->response_time_mean = (string) $analysis->response_time_mean;
         $this->empathy_score = (string) $analysis->empathy_score;
         $this->conformity_index = (string) $analysis->conformity_index;
@@ -109,6 +111,22 @@ class BehaviorAnalysis extends Component
         $this->last_update = optional($analysis->last_update)->format('Y-m-d\TH:i') ?? '';
         $this->resetValidation();
         $this->showFormModal = true;
+    }
+
+    public function updatedStudentSearch(): void
+    {
+        $this->student_id = '';
+        $this->name = '';
+    }
+
+    public function selectStudent(string $nis): void
+    {
+        $student = Student::where('nis', $nis)->firstOrFail();
+
+        $this->student_id = $student->nis;
+        $this->name = $student->name;
+        $this->studentSearch = $student->name;
+        $this->resetValidation(['student_id', 'name', 'studentSearch']);
     }
 
     public function showDetail(int $id): void
@@ -124,8 +142,9 @@ class BehaviorAnalysis extends Component
         ]);
 
         $student = Student::where('nis', $validated['student_id'])->firstOrFail();
-        $validated['name'] = trim($validated['name'] ?: $student->name);
+        $validated['name'] = $student->name;
         $validated['last_update'] = $this->parseDateTime($validated['last_update']) ?? now();
+        unset($validated['studentSearch']);
 
         $duplicate = LogActivity::where('student_id', $validated['student_id'])
             ->where('last_update', $validated['last_update'])
@@ -256,6 +275,7 @@ class BehaviorAnalysis extends Component
             'editId',
             'student_id',
             'name',
+            'studentSearch',
             'response_time_mean',
             'empathy_score',
             'conformity_index',
@@ -343,6 +363,31 @@ class BehaviorAnalysis extends Component
             ->get();
     }
 
+    public function getStudentSuggestionsProperty()
+    {
+        if (! $this->showFormModal || strlen(trim($this->studentSearch)) < 2 || $this->student_id !== '') {
+            return collect();
+        }
+
+        $search = '%' . trim($this->studentSearch) . '%';
+
+        return Student::query()
+            ->where('name', 'like', $search)
+            ->orWhere('nis', 'like', $search)
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['nis', 'name', 'class', 'profile_photo']);
+    }
+
+    public function getSelectedStudentProperty(): ?Student
+    {
+        if ($this->student_id === '') {
+            return null;
+        }
+
+        return Student::where('nis', $this->student_id)->first();
+    }
+
     public function render()
     {
         $query = $this->filteredQuery();
@@ -357,6 +402,8 @@ class BehaviorAnalysis extends Component
             'classRiskStats' => $this->classRiskStats,
             'selectedIsLatest' => $this->selectedIsLatest,
             'selectedHistory' => $this->selectedHistory,
+            'studentSuggestions' => $this->studentSuggestions,
+            'selectedStudent' => $this->selectedStudent,
         ])->layout('layouts.app');
     }
 
@@ -365,6 +412,7 @@ class BehaviorAnalysis extends Component
         return [
             'student_id' => ['required', 'string', 'max:50', Rule::exists('students', 'nis')],
             'name' => ['required', 'string', 'max:150'],
+            'studentSearch' => ['required', 'string', 'max:150'],
             'response_time_mean' => ['required', 'numeric'],
             'empathy_score' => ['required', 'numeric'],
             'conformity_index' => ['required', 'numeric'],

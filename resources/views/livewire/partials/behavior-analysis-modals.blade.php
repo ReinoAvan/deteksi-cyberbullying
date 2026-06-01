@@ -10,15 +10,56 @@
 
             <form wire:submit.prevent="save" class="space-y-4 px-5 py-5">
                 <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="relative" x-data="{ open: true }" x-on:click.outside="open = false">
+                        <label class="text-sm font-semibold text-slate-700">Name</label>
+                        <input
+                            wire:model.live.debounce.250ms="studentSearch"
+                            x-on:focus="open = true"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="Type student name"
+                            class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                        >
+                        @error('studentSearch') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @error('name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+
+                        @if($studentSuggestions->isNotEmpty())
+                            <div
+                                x-show="open"
+                                x-transition
+                                class="absolute left-0 right-0 z-30 mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+                            >
+                                @foreach($studentSuggestions as $student)
+                                    <button
+                                        type="button"
+                                        wire:click="selectStudent(@js($student->nis))"
+                                        x-on:click="open = false"
+                                        class="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition hover:bg-slate-50"
+                                    >
+                                        @if($this->photoUrl($student->profile_photo))
+                                            <img src="{{ $this->photoUrl($student->profile_photo) }}" alt="{{ $student->name }}" class="h-9 w-9 rounded-full object-cover">
+                                        @else
+                                            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                                                {{ strtoupper(substr($student->name, 0, 1)) }}
+                                            </div>
+                                        @endif
+                                        <span class="min-w-0">
+                                            <span class="block truncate font-semibold text-slate-900">{{ $student->name }}</span>
+                                            <span class="block truncate text-xs text-slate-500">{{ $student->nis }} • {{ $student->class }}</span>
+                                        </span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+
                     <div>
                         <label class="text-sm font-semibold text-slate-700">Student ID / NIS</label>
-                        <input wire:model="student_id" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                        <input wire:model="student_id" type="text" readonly class="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none">
                         @error('student_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-slate-700">Name</label>
-                        <input wire:model="name" type="text" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-                        @error('name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        @if($selectedStudent)
+                            <p class="mt-1 text-xs text-slate-500">Class: {{ $selectedStudent->class }}</p>
+                        @endif
                     </div>
                 </div>
 

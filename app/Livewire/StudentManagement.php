@@ -108,7 +108,8 @@ class StudentManagement extends Component
     {
         $validated = $this->validate([
             'profilePhoto' => [
-                ($this->editId && $this->existingProfilePhoto) ? 'nullable' : 'required',
+                // ($this->editId && $this->existingProfilePhoto) ? 'nullable' : 'required',
+                'nullable',
                 'image',
                 'mimes:jpg,jpeg,png,webp',
                 'max:2048',
@@ -214,6 +215,10 @@ class StudentManagement extends Component
                     ?? ''
                 );
 
+                $profilePhoto = $profilePhoto !== ''
+                    ? $profilePhoto
+                    : null;
+
                 if ($nis === '') {
                     $emptyNis++;
                     $skipped++;
@@ -243,12 +248,16 @@ class StudentManagement extends Component
                 ]);
 
                 $payload = [
-                    'profile_photo' => $profilePhoto,
+                    // 'profile_photo' => $profilePhoto,
                     'nis' => $nis,
                     'name' => $name,
                     'class' => $class,
                     'gender' => $gender,
                 ];
+
+                if ($profilePhoto !== null) {
+                    $payload['profile_photo'] = $profilePhoto;
+                }
 
                 $student = Student::where('nis', $nis)->first();
 
@@ -501,15 +510,42 @@ class StudentManagement extends Component
 
         foreach ($sheet->sheetData->row as $row) {
             $values = [];
+        //     foreach ($row->c as $cell) {
+        //         $type = (string) $cell['t'];
+        //         $value = (string) $cell->v;
+        //         $values[] = $type === 's' ? ($sharedStrings[(int) $value] ?? '') : $value;
+        //     }
+        //     $rows[] = $values;
+        // }
             foreach ($row->c as $cell) {
+                $cellRef = (string) $cell['r'];
+                preg_match('/([A-Z]+)/', $cellRef, $matches);
+                $column = $matches[1] ?? 'A';
+                $index = 0;
+
+                for ($i = 0; $i < strlen($column); $i++) {
+                    $index = $index * 26 + (ord($column[$i]) - 64);
+                }
+
+                $index--;
                 $type = (string) $cell['t'];
                 $value = (string) $cell->v;
-                $values[] = $type === 's' ? ($sharedStrings[(int) $value] ?? '') : $value;
-            }
-            $rows[] = $values;
-        }
+                $values[$index] = $type === 's'
+                    ? ($sharedStrings[(int) $value] ?? '')
+                    : $value;
+                }
 
-        return $this->mapImportRows($rows);
+                ksort($values);
+
+                $maxIndex = max(array_keys($values));
+                $filled = [];
+                for ($i = 0; $i <= $maxIndex; $i++) {
+                    $filled[] = $values[$i] ?? '';
+                }
+
+                $rows[] = $filled;
+            }
+    return $this->mapImportRows($rows);
     }
 
     private function mapImportRows(array $rows): array

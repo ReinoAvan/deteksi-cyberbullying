@@ -40,44 +40,59 @@
 <div x-data="{ sidebarCollapsed: false }" class="flex min-h-screen flex-col md:flex-row">
 
     <aside
-        class="sticky top-0 z-30 bg-gradient-to-b from-indigo-700 to-slate-950 p-4 text-white transition-all duration-300 md:h-screen md:self-start"
+        class="sticky top-0 z-30 flex flex-col bg-gradient-to-b from-indigo-700 to-slate-950 p-4 text-white transition-all duration-300 md:h-screen md:self-start"
         x-bind:class="sidebarCollapsed ? 'md:w-20' : 'md:w-64'"
     >
-        <div class="mb-4 flex items-center justify-between gap-3">
-            <div class="min-w-0" x-show="!sidebarCollapsed" x-transition>
-                <h1 class="truncate text-xl font-bold">Dashboard Monitoring</h1>
-                <p class="truncate text-xs opacity-70">Deteksi Dini Cyberbullying</p>
+        <div class="min-h-0 flex-1">
+            <div class="mb-4 flex items-center justify-between gap-3">
+                <div class="min-w-0" x-show="!sidebarCollapsed" x-transition>
+                    <h1 class="truncate text-xl font-bold">Dashboard Monitoring</h1>
+                    <p class="truncate text-xs opacity-70">Deteksi Dini Cyberbullying</p>
+                </div>
+
+                <button
+                    type="button"
+                    x-on:click="sidebarCollapsed = ! sidebarCollapsed"
+                    class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white transition hover:bg-white/20"
+                    title="Toggle sidebar"
+                >
+                    <svg x-show="!sidebarCollapsed" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 6 9 12l6 6"/></svg>
+                    <svg x-show="sidebarCollapsed" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6"/></svg>
+                </button>
             </div>
 
-            <button
-                type="button"
-                x-on:click="sidebarCollapsed = ! sidebarCollapsed"
-                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white transition hover:bg-white/20"
-                title="Toggle sidebar"
-            >
-                <svg x-show="!sidebarCollapsed" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 6 9 12l6 6"/></svg>
-                <svg x-show="sidebarCollapsed" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6"/></svg>
-            </button>
+            <nav class="flex gap-2 overflow-x-auto md:block md:space-y-2">
+                @foreach($navItems as $item)
+                    @php($active = request()->routeIs($item['route']))
+                    <a
+                        href="{{ route($item['route']) }}"
+                        class="flex shrink-0 items-center gap-3 rounded-lg p-3 text-sm transition md:text-base {{ $active ? 'bg-white/20 text-white' : 'opacity-80 hover:bg-white/10' }}"
+                        x-bind:class="sidebarCollapsed ? 'md:justify-center' : ''"
+                        title="{{ $item['label'] }}"
+                    >
+                        @if($active)
+                            <svg class="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="{{ $item['solid'] }}"/></svg>
+                        @else
+                            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['line'] }}"/></svg>
+                        @endif
+                        <span x-show="!sidebarCollapsed" x-transition class="whitespace-nowrap">{{ $item['label'] }}</span>
+                    </a>
+                @endforeach
+            </nav>
         </div>
 
-        <nav class="flex gap-2 overflow-x-auto md:block md:space-y-2">
-            @foreach($navItems as $item)
-                @php($active = request()->routeIs($item['route']))
-                <a
-                    href="{{ route($item['route']) }}"
-                    class="flex shrink-0 items-center gap-3 rounded-lg p-3 text-sm transition md:text-base {{ $active ? 'bg-white/20 text-white' : 'opacity-80 hover:bg-white/10' }}"
-                    x-bind:class="sidebarCollapsed ? 'md:justify-center' : ''"
-                    title="{{ $item['label'] }}"
-                >
-                    @if($active)
-                        <svg class="h-5 w-5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="{{ $item['solid'] }}"/></svg>
-                    @else
-                        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $item['line'] }}"/></svg>
-                    @endif
-                    <span x-show="!sidebarCollapsed" x-transition class="whitespace-nowrap">{{ $item['label'] }}</span>
-                </a>
-            @endforeach
-        </nav>
+        <form method="POST" action="{{ route('logout') }}" class="mt-4 shrink-0">
+            @csrf
+            <button
+                type="submit"
+                class="flex w-full items-center gap-3 rounded-lg p-3 text-sm opacity-80 transition hover:bg-white/10 md:text-base"
+                x-bind:class="sidebarCollapsed ? 'md:justify-center' : ''"
+                title="Logout"
+            >
+                <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"/></svg>
+                <span x-show="!sidebarCollapsed" x-transition class="whitespace-nowrap">Logout</span>
+            </button>
+        </form>
     </aside>
 
     <main class="min-w-0 flex-1 p-4 sm:p-6">
