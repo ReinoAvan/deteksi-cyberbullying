@@ -71,8 +71,6 @@
                         'aggression_score' => 'Aggression Score',
                         'emotion_stability' => 'Emotion Stability',
                         'anonymity_effect' => 'Anonymity Effect',
-                        'final_empathy' => 'Final Empathy',
-                        'risk_score' => 'Risk Score',
                     ] as $field => $label)
                         <div>
                             <label class="text-sm font-semibold text-slate-700">{{ $label }}</label>
@@ -110,14 +108,32 @@
 @if($showDetailModal && $selectedAnalysis)
     <div class="fixed inset-0 z-40 !m-0 flex items-center justify-center bg-slate-950/50 p-4 sm:p-6">
         <div class="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-lg bg-white shadow-xl">
-            <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <style>
+                @media print {
+                    body * { visibility: hidden; }
+                    #analysis-print-area, #analysis-print-area * { visibility: visible; }
+                    #analysis-print-area { position: absolute; inset: 0; width: 100%; background: #fff; }
+                    .no-print { display: none !important; }
+                }
+            </style>
+            <div class="no-print sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
                 <h2 class="text-lg font-bold text-slate-900">Analysis Detail</h2>
-                <button wire:click="$set('showDetailModal', false)" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="window.print()" title="Print" class="rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 9V3.75h10.5V9M6.75 18.75h10.5V15H6.75v3.75Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15H5.25A2.25 2.25 0 0 1 3 12.75v-3A2.25 2.25 0 0 1 5.25 7.5h13.5A2.25 2.25 0 0 1 21 9.75v3A2.25 2.25 0 0 1 18.75 15h-1.5"/></svg>
+                    </button>
+                    <button wire:click="$set('showDetailModal', false)" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
             </div>
 
-            <div class="space-y-5 px-5 py-6">
+            <div id="analysis-print-area" class="space-y-5 px-5 py-6">
+                <div class="hidden print:block">
+                    <h1 class="text-xl font-bold text-slate-900">Analysis Detail</h1>
+                    <p class="mt-1 text-sm text-slate-500">Generated: {{ now()->format('d/m/Y H:i') }}</p>
+                </div>
+
                 <div class="rounded-lg bg-slate-50 px-4 py-5 text-center">
                     @if($selectedAnalysis->student && $this->photoUrl($selectedAnalysis->student->profile_photo))
                         <img src="{{ $this->photoUrl($selectedAnalysis->student->profile_photo) }}" alt="{{ $selectedAnalysis->name }}" class="mx-auto h-24 w-24 rounded-full object-cover ring-4 ring-indigo-50">
@@ -139,15 +155,13 @@
 
                 <div>
                     <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Current Viewed Score</h3>
-                    <dl class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <dl class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach([
                             'Empathy Score' => number_format($selectedAnalysis->empathy_score, 5),
                             'Conformity Index' => number_format($selectedAnalysis->conformity_index, 5),
                             'Aggression Score' => number_format($selectedAnalysis->aggression_score, 5),
                             'Emotion Stability' => number_format($selectedAnalysis->emotion_stability, 5),
                             'Anonymity Effect' => number_format($selectedAnalysis->anonymity_effect, 5),
-                            'Final Empathy' => number_format($selectedAnalysis->final_empathy, 5),
-                            'Risk Score' => number_format($selectedAnalysis->risk_score, 5),
                             'Risk Label' => $this->riskLabelText($selectedAnalysis->risk_label),
                         ] as $label => $value)
                             <div class="rounded-lg bg-slate-50 px-4 py-3">
@@ -158,6 +172,20 @@
                     </dl>
                 </div>
 
+                @if($selectedRecommendations->isNotEmpty())
+                    <div>
+                        <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Uraian Rekomendasi Tindak Lanjut</h3>
+                        <div class="mt-4 grid gap-3">
+                            @foreach($selectedRecommendations as $recommendation)
+                                <div class="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">{{ $recommendation->nama_sikap }}</p>
+                                    <p class="mt-2 text-sm leading-6 text-slate-700">{{ $recommendation->uraian_rekomendasi }}</p>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <div>
                     <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">History Score</h3>
                     <div class="mt-4 grid gap-3">
@@ -167,7 +195,7 @@
                                     <p class="text-sm font-semibold text-slate-900">{{ optional($history->last_update)->format('d/m/Y H:i:s') }}</p>
                                     <span class="rounded-full px-3 py-1 text-xs font-semibold {{ (int) $history->risk_label === 1 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700' }}">{{ $this->riskLabelText($history->risk_label) }}</span>
                                 </div>
-                                <p class="mt-2 text-sm text-slate-500">Empathy: {{ number_format($history->empathy_score, 5) }} | Aggression: {{ number_format($history->aggression_score, 5) }} | Risk Score: {{ number_format($history->risk_score, 5) }}</p>
+                                <p class="mt-2 text-sm text-slate-500">Empathy: {{ number_format($history->empathy_score, 5) }} | Conformity: {{ number_format($history->conformity_index, 5) }} | Aggression: {{ number_format($history->aggression_score, 5) }} | Stability: {{ number_format($history->emotion_stability, 5) }} | Anonymity: {{ number_format($history->anonymity_effect, 5) }}</p>
                             </div>
                         @empty
                             <p class="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-500">No previous behavior score for this student.</p>

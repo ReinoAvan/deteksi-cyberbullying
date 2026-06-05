@@ -176,8 +176,6 @@
                                     'Aggression Score' => number_format($selectedLatestActivity->aggression_score, 5),
                                     'Emotion Stability' => number_format($selectedLatestActivity->emotion_stability, 5),
                                     'Anonymity Effect' => number_format($selectedLatestActivity->anonymity_effect, 5),
-                                    'Final Empathy' => number_format($selectedLatestActivity->final_empathy, 5),
-                                    'Risk Score' => number_format($selectedLatestActivity->risk_score, 5),
                                     'Risk Label' => $this->riskLabelText($selectedLatestActivity->risk_label),
                                 ] as $label => $value)
                                     <div class="rounded-lg bg-slate-50 px-4 py-3">
@@ -200,7 +198,7 @@
                                             {{ $this->riskLabelText($history->risk_label) }}
                                         </span>
                                     </div>
-                                    <p class="mt-2 text-sm text-slate-500">Response Time: {{ number_format($history->response_time_mean, 5) }} | Risk Score: {{ number_format($history->risk_score, 5) }}</p>
+                                    <p class="mt-2 text-sm text-slate-500">Response Time: {{ number_format($history->response_time_mean, 5) }} | Empathy: {{ number_format($history->empathy_score, 5) }} | Aggression: {{ number_format($history->aggression_score, 5) }}</p>
                                 </div>
                             @empty
                                 <p class="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-500">No previous activity history for this student.</p>

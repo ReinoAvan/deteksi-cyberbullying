@@ -34,6 +34,18 @@
             'line' => 'M4 19V5m0 14h16M8 16v-5m4 5V8m4 8v-7',
             'solid' => 'M3 4h2v14h16v2H3V4Zm4 8h3v5H7v-5Zm5-5h3v10h-3V7Zm5 3h3v7h-3v-7Z',
         ],
+        [
+            'label' => 'Manajemen Rekomendasi',
+            'route' => 'manajemen-rekomendasi',
+            'line' => 'M7.5 8.25h9m-9 3.75h5.25M21 12c0 4.556-3.86 8.25-8.625 8.25a9.28 9.28 0 0 1-3.936-.865L3 21l1.615-4.439A7.88 7.88 0 0 1 3 12c0-4.556 3.86-8.25 8.625-8.25S21 7.444 21 12Z',
+            'solid' => 'M12 3C7.03 3 3 6.58 3 11c0 1.7.6 3.28 1.63 4.58L3.5 20.5l4.78-1.55A9.93 9.93 0 0 0 12 19c4.97 0 9-3.58 9-8s-4.03-8-9-8Zm-4 6h8v2H8V9Zm0 4h5v2H8v-2Z',
+        ],
+        [
+            'label' => 'Manajemen Role',
+            'route' => 'manajemen-role',
+            'line' => 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.25a8.25 8.25 0 0 1 16.5 0',
+            'solid' => 'M12 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 11a8 8 0 0 1 16 0H4Z',
+        ],
     ];
 @endphp
 
@@ -61,7 +73,7 @@
                 </button>
             </div>
 
-            <nav class="flex gap-2 overflow-x-auto md:block md:space-y-2">
+            <nav class="flex flex-wrap gap-2 md:block md:space-y-2">
                 @foreach($navItems as $item)
                     @php($active = request()->routeIs($item['route']))
                     <a

@@ -40,7 +40,7 @@
         <form wire:submit.prevent="importExcel">
             <label class="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0-12 4 4m-4-4-4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/>
                 </svg>
 
                 <span>Import</span>
@@ -62,7 +62,7 @@
                 class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 lg:w-auto"
             >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15V3m0 0 4 4m-4-4-4 4M4 19h16"/>
                 </svg>
                 Export
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -95,18 +95,32 @@
     </div>
 </div>
 
-    <div class="grid gap-4 md:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-sm text-slate-500">Total Students</p>
             <p class="mt-2 text-3xl font-bold text-slate-900">{{ $totalStudents }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-sm text-slate-500">Visible Rows</p>
-            <p class="mt-2 text-3xl font-bold text-slate-900">{{ $students->count() }}</p>
+            <p class="text-sm text-slate-500">Total Male</p>
+            <p class="mt-2 text-3xl font-bold text-slate-900">{{ $totalMale }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-sm text-slate-500">Classes</p>
+            <p class="text-sm text-slate-500">Total Female</p>
+            <p class="mt-2 text-3xl font-bold text-slate-900">{{ $totalFemale }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-sm text-slate-500">Total Class</p>
             <p class="mt-2 text-3xl font-bold text-slate-900">{{ $classOptions->count() }}</p>
+        </div>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div>
+            <h2 class="text-base font-bold text-slate-900">Student Distribution by Class</h2>
+            <p class="mt-1 text-sm text-slate-500">Male and female student comparison per class.</p>
+        </div>
+        <div class="mt-4 h-64 w-full min-w-0">
+            <canvas id="studentClassChart" class="h-full w-full"></canvas>
         </div>
     </div>
 
@@ -129,13 +143,33 @@
         <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @foreach($classStats as $classStat)
                 <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <div>
-                        <p class="font-bold text-slate-900">{{ $classStat['name'] }}</p>
-                        <p class="text-sm text-slate-500">{{ $classStat['total'] }} students</p>
-                    </div>
-                    <button wire:click="deleteClass(@js($classStat['name']))" wire:confirm="Delete this class?" title="Delete class" class="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-700">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .563c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397"/></svg>
-                    </button>
+                    @if($editingClassOriginal === $classStat['name'])
+                        <div class="min-w-0 flex-1">
+                            <input wire:model="editingClassName" type="text" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                            @error('editingClassName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="ml-2 flex gap-1">
+                            <button wire:click="updateClass" wire:confirm="Are you sure you want to update this class?" title="Save class" class="rounded-lg p-2 text-slate-500 transition hover:bg-emerald-50 hover:text-emerald-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                            </button>
+                            <button wire:click="cancelEditClass" title="Cancel" class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    @else
+                        <div>
+                            <p class="font-bold text-slate-900">{{ $classStat['name'] }}</p>
+                            <p class="text-sm text-slate-500">{{ $classStat['total'] }} students</p>
+                        </div>
+                        <div class="flex gap-1">
+                            <button wire:click="startEditClass(@js($classStat['name']))" title="Edit class" class="rounded-lg p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L8.25 18.402 3.75 19.5l1.098-4.5 12.014-10.513Z"/></svg>
+                            </button>
+                            <button wire:click="deleteClass(@js($classStat['name']))" wire:confirm="This action will permanently delete the class and all students within it. Continue?" title="Delete class" class="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166M18.16 19.673A2.25 2.25 0 0 1 15.916 21H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .563c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397"/></svg>
+                            </button>
+                        </div>
+                    @endif
                 </div>
             @endforeach
         </div>
@@ -388,4 +422,37 @@
             </div>
         </div>
     @endif
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('livewire:navigated', renderStudentClassChart);
+        document.addEventListener('DOMContentLoaded', renderStudentClassChart);
+
+        function renderStudentClassChart() {
+            const canvas = document.getElementById('studentClassChart');
+            if (!canvas || !window.Chart) return;
+
+            if (window.studentClassChartInstance) {
+                window.studentClassChartInstance.destroy();
+            }
+
+            const chartData = @json($classDistributionChart);
+            window.studentClassChartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        { label: 'Male', data: chartData.male, backgroundColor: '#4f46e5', borderRadius: 6 },
+                        { label: 'Female', data: chartData.female, backgroundColor: '#14b8a6', borderRadius: 6 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        }
+    </script>
 </div>

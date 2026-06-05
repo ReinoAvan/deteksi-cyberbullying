@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\LogActivity;
+use App\Models\Recommendation;
 use App\Models\Student;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -28,6 +29,7 @@ class BehaviorAnalysis extends Component
     public bool $showDetailModal = false;
     public ?int $editId = null;
     public ?LogActivity $selectedAnalysis = null;
+    public ?string $selectedRiskClass = null;
 
     public $importFile;
 
@@ -40,8 +42,6 @@ class BehaviorAnalysis extends Component
     public string $aggression_score = '';
     public string $emotion_stability = '';
     public string $anonymity_effect = '';
-    public string $final_empathy = '';
-    public string $risk_score = '';
     public string $risk_label = '0';
     public string $last_update = '';
 
@@ -70,7 +70,7 @@ class BehaviorAnalysis extends Component
 
     public function sortBy(string $field): void
     {
-        if (! in_array($field, ['student_id', 'name', 'class', 'empathy_score', 'conformity_index', 'aggression_score', 'emotion_stability', 'anonymity_effect', 'final_empathy', 'risk_score', 'risk_label', 'last_update'], true)) {
+        if (! in_array($field, ['student_id', 'name', 'class', 'empathy_score', 'conformity_index', 'aggression_score', 'emotion_stability', 'anonymity_effect', 'risk_label', 'last_update'], true)) {
             return;
         }
 
@@ -93,20 +93,18 @@ class BehaviorAnalysis extends Component
 
     public function openEditModal(int $id): void
     {
-        $analysis = LogActivity::findOrFail($id);
+        $analysis = LogActivity::with('student')->findOrFail($id);
 
         $this->editId = $analysis->id;
         $this->student_id = $analysis->student_id;
-        $this->name = $analysis->name;
-        $this->studentSearch = $analysis->student->name ?? $analysis->name;
+        $this->name = $analysis->student->name ?? $analysis->name;
+        $this->studentSearch = $this->name;
         $this->response_time_mean = (string) $analysis->response_time_mean;
         $this->empathy_score = (string) $analysis->empathy_score;
         $this->conformity_index = (string) $analysis->conformity_index;
         $this->aggression_score = (string) $analysis->aggression_score;
         $this->emotion_stability = (string) $analysis->emotion_stability;
         $this->anonymity_effect = (string) $analysis->anonymity_effect;
-        $this->final_empathy = (string) $analysis->final_empathy;
-        $this->risk_score = (string) $analysis->risk_score;
         $this->risk_label = (string) $analysis->risk_label;
         $this->last_update = optional($analysis->last_update)->format('Y-m-d\TH:i') ?? '';
         $this->resetValidation();
@@ -135,6 +133,11 @@ class BehaviorAnalysis extends Component
         $this->showDetailModal = true;
     }
 
+    public function viewClassRisk(string $className): void
+    {
+        $this->selectedRiskClass = $className;
+    }
+
     public function save(): void
     {
         $validated = $this->validate($this->rules(), [
@@ -144,6 +147,8 @@ class BehaviorAnalysis extends Component
         $student = Student::where('nis', $validated['student_id'])->firstOrFail();
         $validated['name'] = $student->name;
         $validated['last_update'] = $this->parseDateTime($validated['last_update']) ?? now();
+        $validated['final_empathy'] = 0;
+        $validated['risk_score'] = 0;
         unset($validated['studentSearch']);
 
         $duplicate = LogActivity::where('student_id', $validated['student_id'])
@@ -221,12 +226,7 @@ class BehaviorAnalysis extends Component
         $this->importFile = null;
         $this->resetPage();
 
-        $message = "Import completed. {$imported} imported, {$skipped} skipped, {$duplicates} duplicate, {$invalidStudents} invalid student.";
-        if ($invalidRows > 0) {
-            $message .= " {$invalidRows} invalid row.";
-        }
-
-        $this->dispatch('notify', type: 'success', message: $message);
+        $this->dispatch('notify', type: 'success', message: "Import completed. {$imported} imported, {$skipped} skipped, {$duplicates} duplicate, {$invalidStudents} invalid student, {$invalidRows} invalid row.");
     }
 
     public function exportExcel()
@@ -236,20 +236,18 @@ class BehaviorAnalysis extends Component
 
         return response()->streamDownload(function () use ($logs) {
             echo '<table border="1">';
-            echo '<tr><th>ID</th><th>Name</th><th>Class</th><th>Empathy Score</th><th>Conformity Index</th><th>Aggression Score</th><th>Emotion Stability</th><th>Anonymity Effect</th><th>Final Empathy</th><th>Risk Score</th><th>Risk Label</th><th>Last Update</th></tr>';
+            echo '<tr><th>ID</th><th>Name</th><th>Class</th><th>Empathy Score</th><th>Conformity Index</th><th>Aggression Score</th><th>Emotion Stability</th><th>Anonymity Effect</th><th>Risk Label</th><th>Last Update</th></tr>';
 
             foreach ($logs as $log) {
                 echo '<tr>';
                 echo '<td>' . e($log->student_id) . '</td>';
-                echo '<td>' . e($log->name) . '</td>';
+                echo '<td>' . e($log->student->name ?? $log->name) . '</td>';
                 echo '<td>' . e($log->student->class ?? '-') . '</td>';
                 echo '<td>' . e($log->empathy_score) . '</td>';
                 echo '<td>' . e($log->conformity_index) . '</td>';
                 echo '<td>' . e($log->aggression_score) . '</td>';
                 echo '<td>' . e($log->emotion_stability) . '</td>';
                 echo '<td>' . e($log->anonymity_effect) . '</td>';
-                echo '<td>' . e($log->final_empathy) . '</td>';
-                echo '<td>' . e($log->risk_score) . '</td>';
                 echo '<td>' . e($this->riskLabelText($log->risk_label)) . '</td>';
                 echo '<td>' . e(optional($log->last_update)->format('d/m/Y H:i:s')) . '</td>';
                 echo '</tr>';
@@ -282,8 +280,6 @@ class BehaviorAnalysis extends Component
             'aggression_score',
             'emotion_stability',
             'anonymity_effect',
-            'final_empathy',
-            'risk_score',
             'last_update',
         ]);
         $this->risk_label = '0';
@@ -306,6 +302,52 @@ class BehaviorAnalysis extends Component
             : asset($path);
     }
 
+    public function behaviorLabels(): array
+    {
+        return [
+            'empathy' => 'Empathy Score',
+            'conformity' => 'Conformity Index',
+            'aggression' => 'Aggression Score',
+            'emotion_stability' => 'Emotion Stability',
+            'anonymity_effect' => 'Anonymity Effect',
+        ];
+    }
+
+    public function highestBehaviorKeys(LogActivity $analysis): array
+    {
+        $scores = [
+            'empathy' => (float) $analysis->empathy_score,
+            'conformity' => (float) $analysis->conformity_index,
+            'aggression' => (float) $analysis->aggression_score,
+            'emotion_stability' => (float) $analysis->emotion_stability,
+            'anonymity_effect' => (float) $analysis->anonymity_effect,
+        ];
+
+        $max = max($scores);
+
+        return array_keys(array_filter($scores, fn ($value) => $value === $max));
+    }
+
+    public function highestBehaviorText(LogActivity $analysis): string
+    {
+        $labels = $this->behaviorLabels();
+
+        return collect($this->highestBehaviorKeys($analysis))
+            ->map(fn ($key) => $labels[$key] ?? $key)
+            ->implode(', ');
+    }
+
+    public function recommendationsFor(?LogActivity $analysis)
+    {
+        if (! $analysis || (int) $analysis->risk_label !== 1) {
+            return collect();
+        }
+
+        return Recommendation::whereIn('nama_sikap', $this->highestBehaviorKeys($analysis))
+            ->orderBy('nama_sikap')
+            ->get();
+    }
+
     public function getRiskStudentsProperty(): int
     {
         return $this->latestRowsQuery()
@@ -322,8 +364,6 @@ class BehaviorAnalysis extends Component
             'aggression_score' => round((float) LogActivity::avg('aggression_score'), 3),
             'emotion_stability' => round((float) LogActivity::avg('emotion_stability'), 3),
             'anonymity_effect' => round((float) LogActivity::avg('anonymity_effect'), 3),
-            'final_empathy' => round((float) LogActivity::avg('final_empathy'), 3),
-            'risk_score' => round((float) LogActivity::avg('risk_score'), 3),
         ];
     }
 
@@ -335,6 +375,30 @@ class BehaviorAnalysis extends Component
             ->select('students.class', DB::raw('count(distinct latest_logs.student_id) as total'))
             ->groupBy('students.class')
             ->orderBy('students.class')
+            ->get();
+    }
+
+    public function getClassRiskStudentsProperty()
+    {
+        if (! $this->selectedRiskClass) {
+            return collect();
+        }
+
+        $latestSubquery = LogActivity::query()
+            ->select('student_id', DB::raw('max(last_update) as newest_update'))
+            ->groupBy('student_id');
+
+        return LogActivity::query()
+            ->with('student')
+            ->joinSub($latestSubquery, 'latest', function ($join) {
+                $join->on('log_activities.student_id', '=', 'latest.student_id')
+                    ->on('log_activities.last_update', '=', 'latest.newest_update');
+            })
+            ->join('students', 'log_activities.student_id', '=', 'students.nis')
+            ->where('students.class', $this->selectedRiskClass)
+            ->where('log_activities.risk_label', 1)
+            ->select('log_activities.*')
+            ->orderBy('students.name')
             ->get();
     }
 
@@ -388,6 +452,11 @@ class BehaviorAnalysis extends Component
         return Student::where('nis', $this->student_id)->first();
     }
 
+    public function getSelectedRecommendationsProperty()
+    {
+        return $this->recommendationsFor($this->selectedAnalysis);
+    }
+
     public function render()
     {
         $query = $this->filteredQuery();
@@ -400,8 +469,10 @@ class BehaviorAnalysis extends Component
             'riskStudents' => $this->riskStudents,
             'chartAverages' => $this->chartAverages,
             'classRiskStats' => $this->classRiskStats,
+            'classRiskStudents' => $this->classRiskStudents,
             'selectedIsLatest' => $this->selectedIsLatest,
             'selectedHistory' => $this->selectedHistory,
+            'selectedRecommendations' => $this->selectedRecommendations,
             'studentSuggestions' => $this->studentSuggestions,
             'selectedStudent' => $this->selectedStudent,
         ])->layout('layouts.app');
@@ -419,8 +490,6 @@ class BehaviorAnalysis extends Component
             'aggression_score' => ['required', 'numeric'],
             'emotion_stability' => ['required', 'numeric'],
             'anonymity_effect' => ['required', 'numeric'],
-            'final_empathy' => ['required', 'numeric'],
-            'risk_score' => ['required', 'numeric'],
             'risk_label' => ['required', Rule::in(['0', '1', 0, 1])],
             'last_update' => ['required', 'date'],
         ];
@@ -437,7 +506,8 @@ class BehaviorAnalysis extends Component
                 $query->where(function ($query) use ($search) {
                     $query->where('log_activities.student_id', 'like', $search)
                         ->orWhere('log_activities.name', 'like', $search)
-                        ->orWhere('students.name', 'like', $search);
+                        ->orWhere('students.name', 'like', $search)
+                        ->orWhere('students.class', 'like', $search);
                 });
             })
             ->when($this->riskFilter !== '', fn ($query) => $query->where('log_activities.risk_label', (int) $this->riskFilter));
@@ -582,10 +652,10 @@ class BehaviorAnalysis extends Component
     private function buildSimplePdf($logs): string
     {
         $lines = ['Behavior Analysis Report', 'Generated: ' . now()->format('Y-m-d H:i'), ''];
-        $lines[] = 'ID | Name | Risk Score | Risk Label | Last Update';
+        $lines[] = 'ID | Name | Class | Risk Label | Last Update';
 
         foreach ($logs as $log) {
-            $lines[] = "{$log->student_id} | {$log->name} | {$log->risk_score} | {$this->riskLabelText($log->risk_label)} | " . optional($log->last_update)->format('d/m/Y H:i:s');
+            $lines[] = "{$log->student_id} | " . ($log->student->name ?? $log->name) . ' | ' . ($log->student->class ?? '-') . " | {$this->riskLabelText($log->risk_label)} | " . optional($log->last_update)->format('d/m/Y H:i:s');
         }
 
         $content = "BT /F1 10 Tf 36 800 Td 13 TL";

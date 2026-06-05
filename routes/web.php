@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Livewire\CyberbullyingDashboard;
 use App\Livewire\BehaviorAnalysis;
 use App\Livewire\LogActivity;
+use App\Livewire\RecommendationManagement;
+use App\Livewire\RoleManagement;
 use App\Livewire\StudentManagement;
 
 Route::middleware('guest')->group(function () {
@@ -31,4 +33,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/analisis-perilaku', BehaviorAnalysis::class)
         ->name('analisis-perilaku');
+
+    Route::get('/manajemen-rekomendasi', RecommendationManagement::class)
+        ->name('manajemen-rekomendasi');
+
+    Route::get('/manajemen-role', RoleManagement::class)
+        ->name('manajemen-role');
 });

@@ -37,6 +37,8 @@ class StudentManagement extends Component
     public string $class = '';
     public string $gender = 'Male';
     public string $newClassName = '';
+    public ?string $editingClassOriginal = null;
+    public string $editingClassName = '';
 
     protected array $queryString = [
         'search' => ['except' => ''],
@@ -368,15 +370,55 @@ class StudentManagement extends Component
 
     public function deleteClass(string $className): void
     {
-        $studentCount = Student::where('class', $className)->count();
+        DB::transaction(function () use ($className) {
+            Student::where('class', $className)->delete();
+            StudentClass::where('name', $className)->delete();
+        });
 
-        if ($studentCount > 0) {
-            $this->dispatch('notify', type: 'error', message: 'Class cannot be deleted while students are assigned.');
+        $this->dispatch('notify', type: 'success', message: 'Class deleted successfully.');
+    }
+
+    public function startEditClass(string $className): void
+    {
+        $this->editingClassOriginal = $className;
+        $this->editingClassName = $className;
+        $this->resetValidation(['editingClassName']);
+    }
+
+    public function cancelEditClass(): void
+    {
+        $this->editingClassOriginal = null;
+        $this->editingClassName = '';
+        $this->resetValidation(['editingClassName']);
+    }
+
+    public function updateClass(): void
+    {
+        if (! $this->editingClassOriginal) {
             return;
         }
 
-        StudentClass::where('name', $className)->delete();
-        $this->dispatch('notify', type: 'success', message: 'Class deleted successfully.');
+        $validated = $this->validate([
+            'editingClassName' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('student_classes', 'name')->ignore(
+                    StudentClass::where('name', $this->editingClassOriginal)->value('id')
+                ),
+            ],
+        ]);
+
+        $oldName = $this->editingClassOriginal;
+        $newName = trim($validated['editingClassName']);
+
+        DB::transaction(function () use ($oldName, $newName) {
+            StudentClass::updateOrCreate(['name' => $oldName], ['name' => $newName]);
+            Student::where('class', $oldName)->update(['class' => $newName]);
+        });
+
+        $this->cancelEditClass();
+        $this->dispatch('notify', type: 'success', message: 'Class updated successfully.');
     }
 
     public function getClassOptionsProperty()
@@ -418,6 +460,32 @@ class StudentManagement extends Component
         return Student::count();
     }
 
+    public function getTotalMaleProperty(): int
+    {
+        return Student::where('gender', 'Male')->count();
+    }
+
+    public function getTotalFemaleProperty(): int
+    {
+        return Student::where('gender', 'Female')->count();
+    }
+
+    public function getClassDistributionChartProperty(): array
+    {
+        $rows = Student::query()
+            ->select('class', 'gender', DB::raw('count(*) as total'))
+            ->groupBy('class', 'gender')
+            ->get();
+
+        $classes = $this->classOptions->all();
+
+        return [
+            'labels' => $classes,
+            'male' => collect($classes)->map(fn ($class) => (int) optional($rows->first(fn ($row) => $row->class === $class && $this->normalizeGender($row->gender) === 'Male'))->total)->values(),
+            'female' => collect($classes)->map(fn ($class) => (int) optional($rows->first(fn ($row) => $row->class === $class && $this->normalizeGender($row->gender) === 'Female'))->total)->values(),
+        ];
+    }
+
     public function render()
     {
         $query = $this->filteredQuery()->orderBy($this->sortField, $this->sortDirection);
@@ -430,6 +498,9 @@ class StudentManagement extends Component
             'classOptions' => $this->classOptions,
             'classStats' => $this->classStats,
             'totalStudents' => $this->totalStudents,
+            'totalMale' => $this->totalMale,
+            'totalFemale' => $this->totalFemale,
+            'classDistributionChart' => $this->classDistributionChart,
         ])->layout('layouts.app');
     }
 
