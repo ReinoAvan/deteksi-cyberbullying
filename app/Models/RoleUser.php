@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class RoleUser extends Model
+class RoleUser extends Authenticatable
 {
+    protected $table = 'role_users';
+
     protected $fillable = [
         'username',
         'email',
@@ -15,5 +18,9 @@ class RoleUser extends Model
 
     protected $hidden = [
         'password',
+    ];
+
+    protected $casts = [
+        'password' => 'hashed',
     ];
 }
