@@ -54,18 +54,73 @@
     </div>
 
     <div class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div class="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex min-w-0 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-base font-bold text-slate-900">Average Behavior Score</h2>
-                    <p class="mt-1 text-sm text-slate-500">Average comparison for each behavior score.</p>
-                </div>
-                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">
-                    {{ $riskStudents }} Siswa Berisiko
-                </div>
+                @if($selectedRiskClass)
+                    <div class="min-w-0">
+                        <h2 class="truncate text-base font-bold text-slate-900">Daftar Siswa Berisiko Kelas {{ $selectedRiskClass }}</h2>
+                        <p class="mt-1 text-sm text-slate-500">Latest risky students and matching recommendation preview.</p>
+                    </div>
+                    <button wire:click="clearRiskClass" title="Close" class="ml-3 shrink-0 rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition hover:bg-slate-50">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                    </button>
+                @else
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Average Behavior Score</h2>
+                        <p class="mt-1 text-sm text-slate-500">Average comparison for each behavior score.</p>
+                    </div>
+                    <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">
+                        {{ $riskStudents }} Siswa Berisiko
+                    </div>
+                @endif
             </div>
+
             <div class="mt-4 h-64 w-full min-w-0">
-                <canvas id="behaviorAverageChart" class="h-full w-full"></canvas>
+                @if($selectedRiskClass)
+                    <div class="h-full overflow-y-auto scroll-smooth pr-1">
+                        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                            @forelse($classRiskStudents as $riskStudent)
+                                @php($recommendations = $this->recommendationsFor($riskStudent))
+                                <div x-data="{ expanded: false }" x-on:click="expanded = ! expanded" class="cursor-pointer rounded-lg border border-slate-200 bg-slate-50 p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40">
+                                    <div class="flex items-start gap-3">
+                                        <button type="button" wire:click.stop="showDetail({{ $riskStudent->id }})" class="shrink-0">
+                                            @if($riskStudent->student && $this->photoUrl($riskStudent->student->profile_photo))
+                                                <img src="{{ $this->photoUrl($riskStudent->student->profile_photo) }}" alt="{{ $riskStudent->student->name }}" class="h-12 w-12 rounded-full object-cover ring-2 ring-white">
+                                            @else
+                                                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+                                                    {{ strtoupper(substr($riskStudent->student->name ?? $riskStudent->name, 0, 1)) }}
+                                                </div>
+                                            @endif
+                                        </button>
+                                        <div class="min-w-0 flex-1">
+                                            <button type="button" wire:click.stop="showDetail({{ $riskStudent->id }})" class="block w-full truncate text-left font-bold text-slate-900 hover:text-indigo-700">{{ $riskStudent->student->name ?? $riskStudent->name }}</button>
+                                            <p class="truncate text-xs text-slate-500">NIS: {{ $riskStudent->student_id }}</p>
+                                            <p class="mt-1 text-xs font-semibold text-slate-700">Highest Behavior: {{ $this->highestBehaviorText($riskStudent) }}</p>
+                                            <span class="mt-2 inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">Berisiko</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 text-sm text-slate-600">
+                                        @forelse($recommendations as $recommendation)
+                                            <p class="transition-all" x-bind:class="expanded ? '' : 'truncate'">
+                                                <span class="font-semibold text-slate-800">Recommendation:</span> {{ $recommendation->uraian_rekomendasi }}
+                                            </p>
+                                        @empty
+                                            <p class="text-slate-500">Recommendation: -</p>
+                                        @endforelse
+                                    </div>
+                                    <button type="button" wire:click.stop="showDetail({{ $riskStudent->id }})" class="mt-3 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
+                                        View Detail
+                                    </button>
+                                </div>
+                            @empty
+                                <p class="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-500 sm:col-span-2 xl:col-span-3">No risky students found for this class.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                @else
+                    <canvas id="behaviorAverageChart" class="h-full w-full"></canvas>
+                @endif
             </div>
         </div>
 
@@ -89,56 +144,6 @@
             </div>
         </div>
     </div>
-
-    @if($selectedRiskClass)
-        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h2 class="text-base font-bold text-slate-900">Students at Risk - {{ $selectedRiskClass }}</h2>
-                    <p class="mt-1 text-sm text-slate-500">Latest risky students and matching recommendation preview.</p>
-                </div>
-                <button wire:click="$set('selectedRiskClass', null)" class="inline-flex items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Close</button>
-            </div>
-
-            <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                @forelse($classRiskStudents as $riskStudent)
-                    @php($recommendations = $this->recommendationsFor($riskStudent))
-                    <div x-data="{ expanded: false }" x-on:click="expanded = ! expanded" class="cursor-pointer rounded-lg border border-slate-200 bg-slate-50 p-4 transition hover:border-indigo-200 hover:bg-indigo-50/40">
-                        <div class="flex items-start gap-3">
-                            <button type="button" wire:click.stop="showDetail({{ $riskStudent->id }})" class="shrink-0">
-                                @if($riskStudent->student && $this->photoUrl($riskStudent->student->profile_photo))
-                                    <img src="{{ $this->photoUrl($riskStudent->student->profile_photo) }}" alt="{{ $riskStudent->student->name }}" class="h-12 w-12 rounded-full object-cover ring-2 ring-white">
-                                @else
-                                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
-                                        {{ strtoupper(substr($riskStudent->student->name ?? $riskStudent->name, 0, 1)) }}
-                                    </div>
-                                @endif
-                            </button>
-                            <div class="min-w-0 flex-1">
-                                <button type="button" wire:click.stop="showDetail({{ $riskStudent->id }})" class="block truncate text-left font-bold text-slate-900 hover:text-indigo-700">{{ $riskStudent->student->name ?? $riskStudent->name }}</button>
-                                <p class="truncate text-xs text-slate-500">{{ $riskStudent->student_id }}</p>
-                                <p class="mt-1 text-xs font-semibold text-slate-700">Highest Behavior: {{ $this->highestBehaviorText($riskStudent) }}</p>
-                            </div>
-                            <button type="button" wire:click.stop="showDetail({{ $riskStudent->id }})" class="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
-                            </button>
-                        </div>
-                        <div class="mt-3 text-sm text-slate-600">
-                            @forelse($recommendations as $recommendation)
-                                <p class="transition-all" x-bind:class="expanded ? '' : 'truncate'">
-                                    <span class="font-semibold text-slate-800">Recommendation:</span> {{ $recommendation->uraian_rekomendasi }}
-                                </p>
-                            @empty
-                                <p class="text-slate-500">Recommendation: -</p>
-                            @endforelse
-                        </div>
-                    </div>
-                @empty
-                    <p class="rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-500 sm:col-span-2 xl:col-span-4">No risky students found for this class.</p>
-                @endforelse
-            </div>
-        </div>
-    @endif
 
     <div class="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-200 p-4">
@@ -258,6 +263,9 @@
     <script>
         document.addEventListener('livewire:navigated', renderBehaviorAverageChart);
         document.addEventListener('DOMContentLoaded', renderBehaviorAverageChart);
+        document.addEventListener('livewire:init', () => {
+            Livewire.hook('morph.updated', () => setTimeout(renderBehaviorAverageChart, 0));
+        });
 
         function renderBehaviorAverageChart() {
             const canvas = document.getElementById('behaviorAverageChart');

@@ -138,6 +138,11 @@ class BehaviorAnalysis extends Component
         $this->selectedRiskClass = $className;
     }
 
+    public function clearRiskClass(): void
+    {
+        $this->selectedRiskClass = null;
+    }
+
     public function save(): void
     {
         $validated = $this->validate($this->rules(), [
