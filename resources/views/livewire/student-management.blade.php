@@ -378,7 +378,7 @@
     @endif
 
     @if($showDetailModal && $selectedStudent)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/50 p-4">
+        <div class="fixed inset-0 z-40 !m-0 flex items-center justify-center bg-slate-950/50 p-4">
             <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
                 <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                     <h2 class="text-lg font-bold text-slate-900">Student Detail</h2>

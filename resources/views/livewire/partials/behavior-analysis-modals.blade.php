@@ -116,7 +116,7 @@
                     .no-print { display: none !important; }
                 }
             </style>
-            <div class="no-print sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+            <div class="no-print sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 shadow-sm">
                 <h2 class="text-lg font-bold text-slate-900">Analysis Detail</h2>
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="window.print()" title="Print" class="rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700">
